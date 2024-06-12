@@ -1,0 +1,7 @@
+.env
+venv
+__pycache__
+.ruff_cache
+.ruff.toml
+.isort.cfg
+shortener.sqlite3
