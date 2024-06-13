@@ -97,10 +97,10 @@ async def delete_url(
     utils.raise_not_found(request)
 
 
-@app.get('/peek/{url_key}')
+@app.get('/peek/{url_key}', response_model=schemas.URLResponse)
 async def peek_url(
     url_key: str, request: Request, db: AsyncSession = Depends(get_db)
-) -> schemas.URLResponse:
+):
     if db_url := await crud.get_db_url_by_key(db, url_key):
         return {'target_url': db_url.target_url}
 
