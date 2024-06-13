@@ -5,7 +5,11 @@ from . import keygen, models, schemas
 
 
 async def create_db_url(db: AsyncSession, url: schemas.URLBase) -> models.URL:
-    key = await keygen.create_unique_random_key(db)
+    key = (
+        url.custom_key
+        if url.custom_key
+        else await keygen.create_unique_random_key(db)
+    )
     secret_key = f'{key}_{keygen.create_random_key(8)}'
     db_url = models.URL(
         target_url=url.target_url, key=key, secret_key=secret_key

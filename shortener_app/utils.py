@@ -1,4 +1,9 @@
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from . import models
+from .constants import ERROR_MESSAGES
 
 
 def raise_bad_request(message):
@@ -6,5 +11,16 @@ def raise_bad_request(message):
 
 
 def raise_not_found(request):
-    message = f"URL '{request.url}' doesn't exist"
-    raise HTTPException(status_code=404, detail=message)
+    url = str(request.url)
+    if 'peek' in url:
+        url = ''.join(url.split('peek/'))
+
+    raise HTTPException(
+        status_code=404,
+        detail=ERROR_MESSAGES['url_does_not_exist'].format(url),
+    )
+
+
+async def check_key_already_exist(db: AsyncSession, custom_key: str) -> bool:
+    stat = select(models.URL).filter(models.URL.key == custom_key).exists()
+    return await db.execute(stat).scalar()

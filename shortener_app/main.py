@@ -10,6 +10,7 @@ from starlette.datastructures import URL
 
 from . import crud, models, schemas, utils
 from .config import get_settings
+from .constants import ERROR_MESSAGES, MESSAGES
 from .database import get_db, init_models
 
 
@@ -41,13 +42,21 @@ def get_admin_info(db_url: models.URL) -> schemas.URLInfo:
 
 @app.get('/')
 async def read_root():
-    return {'detail': 'Welcome to the URL shortener API :)'}
+    return {'detail': MESSAGES['greeting']}
 
 
 @app.post('/url', response_model=schemas.URLInfo)
-async def create_url(url: schemas.URLBase, db: AsyncSession = Depends(get_db)):
+async def create_url(
+    url: schemas.URLBase,
+    db: AsyncSession = Depends(get_db),
+):
     if not validators.url(url.target_url):
-        utils.raise_bad_request(message='Your provided URL is not valid')
+        utils.raise_bad_request(message=ERROR_MESSAGES['not_valid_url'])
+
+    if url.custom_key and await utils.check_key_already_exist(
+        db, url.custom_key
+    ):
+        utils.raise_bad_request(message=ERROR_MESSAGES['key_exists'])
 
     db_url = await crud.create_db_url(db, url)
     return get_admin_info(db_url)
@@ -83,7 +92,16 @@ async def delete_url(
     secret_key: str, request: Request, db: AsyncSession = Depends(get_db)
 ):
     if db_url := await crud.deactivate_db_url_by_secret_key(db, secret_key):
-        message = 'Successfully deleted shortened URL for {}'
-        return {'detail': message.format(db_url.target_url)}
+        return {'detail': MESSAGES['success_delete'].format(db_url.target_url)}
+
+    utils.raise_not_found(request)
+
+
+@app.get('/peek/{url_key}')
+async def peek_url(
+    url_key: str, request: Request, db: AsyncSession = Depends(get_db)
+) -> schemas.URLResponse:
+    if db_url := await crud.get_db_url_by_key(db, url_key):
+        return {'target_url': db_url.target_url}
 
     utils.raise_not_found(request)

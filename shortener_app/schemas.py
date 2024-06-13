@@ -4,6 +4,11 @@ from pydantic.config import ConfigDict
 
 class URLBase(BaseModel):
     target_url: str
+    custom_key: str | None = None
+
+
+class URLResponse(BaseModel):
+    target_url: str
 
 
 class URL(URLBase):
